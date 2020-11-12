@@ -11,7 +11,7 @@ import { URL_BASE } from 'src/app/config';
 })
 export class ChatComponent implements OnInit {
 
-	private client;
+	private client: any;
 	public connected: boolean = false;
 
 	public message: Message = new Message();
@@ -19,7 +19,11 @@ export class ChatComponent implements OnInit {
 
 	public writingMessage: string;
 
-	constructor() { }
+	public clientId: string;
+
+	constructor() { 
+		this.clientId = 'id-' + new Date().getTime() + '-' + Math.random().toString(36).substr(2);
+	}
 
 	ngOnInit(): void {
 		this.client = new Client();
@@ -35,7 +39,6 @@ export class ChatComponent implements OnInit {
 				this.message.date = new Date(message.date);
 				if (!this.message.color && message.type === 'NEW_USER' && this.message.username === message.username) this.message.color = message.color;
 				this.messages.push(message);
-				console.log(this.message);
 			});
 
 			this.client.subscribe('/chat/writing', (e) => {
@@ -43,7 +46,22 @@ export class ChatComponent implements OnInit {
 				setTimeout(() => this.writingMessage = '', 3000);
 			});
 
+			this.client.subscribe('/chat/record/' + this.clientId, (e) => {
+				const record = JSON.parse(e.body) as Message[];
+
+				this.messages = record.map(message => {
+					message.date = new Date(message.date);
+					return message;
+				}).reverse();
+			});
+
+			this.client.publish({
+				destination: '/app/record',
+				body: this.clientId
+			}); 
+
 			this.message.type = "NEW_USER";
+
 			this.client.publish({
 				destination: '/app/message',
 				body: JSON.stringify(this.message)
@@ -51,7 +69,9 @@ export class ChatComponent implements OnInit {
 		}
 
 		this.client.onDisconnect = (frame) => {
-			this.connected = false;  
+			this.connected = false;
+			this.message = new Message();
+			this.messages = [];
 		}
 	}
 
