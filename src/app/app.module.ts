@@ -10,7 +10,7 @@ import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 @NgModule({
   declarations: [
     AppComponent,
-    ChatComponent
+    ChatComponent,
   ],
   imports: [
     BrowserModule,
